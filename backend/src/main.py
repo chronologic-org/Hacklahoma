@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config.database import connect_to_mongo, close_mongo_connection
 from routes.example import router as example_router
+from routes.integration import router as integration_router
 
 app = FastAPI()
 
@@ -26,4 +27,5 @@ async def shutdown_db_client():
 async def health_check():
     return {"status": "ok"}
 
-app.include_router(example_router, prefix="/api") 
+app.include_router(example_router, prefix="/api")
+app.include_router(integration_router, prefix="/api/integration") 
