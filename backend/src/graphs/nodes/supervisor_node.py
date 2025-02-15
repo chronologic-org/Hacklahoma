@@ -6,13 +6,13 @@ from .base_node import BaseNode
 
 class SupervisorOutput(BaseModel):
     coding_task: Dict[str, Any] = Field(
-        description="Detailed instructions for the coding node"
+        description="The coding node is in charge of writing the program that will be used to interact with the APIs"
     )
     testing_task: Dict[str, Any] = Field(
-        description="Detailed instructions for the testing node"
+        description="The testing node is in charge of taking the code provided by the coding node and testing it thoroughly using unit tests and other testing strategies"
     )
     acceptance_criteria: list[str] = Field(
-        description="Criteria for accepting the final implementation"
+        description="If the code runs and passes all of the tests, it is accepted as a successful integration"
     )
 
 class SupervisorFeedback(BaseModel):
