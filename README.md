@@ -19,9 +19,16 @@ project/
 │   ├── src/
 │   │   ├── config/         # Configuration files
 │   │   ├── graphs/         # LangGraph flows
+│   │   │   ├── nodes/     # Individual graph nodes
+│   │   │   └── flows/     # Graph flow definitions
 │   │   ├── models/         # Data models
 │   │   ├── routes/         # API routes
+│   │   ├── utils/          # Utility functions
 │   │   └── api/           # API endpoints
+│   ├── tests/              # Test files
+│   │   ├── test_nodes.py  # Node unit tests
+│   │   ├── test_flow.py   # Flow integration tests
+│   │   └── test_api.py    # API endpoint tests
 │   ├── .env                # Environment variables
 │   └── requirements.txt
 │
@@ -34,6 +41,7 @@ project/
 - Python 3.8+
 - Node.js 16+
 - MongoDB installed locally or MongoDB Atlas account
+- OpenAI API key
 
 ### Backend Setup
 1. Set up Python virtual environment:
@@ -48,13 +56,15 @@ project/
    pip install -r requirements.txt
    ```
 
-3. Configure MongoDB:
+3. Configure environment variables:
    - Create a `.env` file in the backend directory:
      ```
      MONGODB_URL=mongodb://localhost:27017
      DATABASE_NAME=hacklahoma
+     OPENAI_API_KEY=your_api_key_here
+     MAX_ITERATIONS=3
+     MODEL_TEMPERATURE=0.2
      ```
-   - For MongoDB Atlas, replace the URL with your connection string
 
 ### Frontend Setup
 1. Install Node.js dependencies:
@@ -62,6 +72,25 @@ project/
    cd frontend
    npm install
    ```
+
+## Running Tests
+
+### Backend Tests
+```bash
+cd backend
+pytest tests/
+```
+
+Available test suites:
+- `test_nodes.py`: Unit tests for individual LangGraph nodes
+- `test_flow.py`: Integration tests for the graph flow
+- `test_api.py`: API endpoint tests
+
+### Frontend Tests
+```bash
+cd frontend
+npm test
+```
 
 ## Running the Application
 
@@ -85,6 +114,15 @@ cd frontend
 npm run dev
 ```
 
+## API Flow
+1. Planning Node: Analyzes user input and creates integration plan
+2. Supervisor Node: Divides work into coding and testing tasks
+3. Parallel Execution:
+   - Coder Node: Generates implementation code
+   - Tester Node: Creates test cases
+4. Evaluator Node: Reviews code and test results
+5. Feedback Loop: Supervisor reviews and decides on next steps
+
 ## Technologies Used
 - Frontend:
   - React
@@ -98,6 +136,14 @@ npm run dev
   - LangChain
   - MongoDB
   - Motor (Async MongoDB driver)
+  - PyTest (Testing)
+
+## Development Guidelines
+1. Run tests before committing changes
+2. Check logs in `backend/logs/` for debugging
+3. Maximum 3 iterations for API integration feedback loop
+4. Use type hints and documentation
+5. Follow error handling patterns in BaseNode
 
 ## Team Members
 [Add team members here]
