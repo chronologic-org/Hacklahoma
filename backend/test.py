@@ -1,4 +1,5 @@
 import os
+import io
 import re
 import logging
 from datetime import datetime, timedelta
@@ -64,13 +65,43 @@ class MeetingExtractor:
         return self._process_results(extracted)
 
     def _extract_title(self, text: str) -> str:
-        return re.search(r'Meeting Title:\s*(.*)', text).group(1) or "Untitled Meeting"
+        match = re.search(r'Meeting Title:\s*(.*)', text)
+        return match.group(1).strip() if match else "Untitled Meeting"
 
     def _extract_datetime(self, text: str) -> datetime:
         match = re.search(self.patterns['datetime'], text)
-        return dateparser.parse(match.group(1), settings={'TIMEZONE': self.timezone.zone})
+        if not match:
+            raise ValueError("No datetime found in document")
+        parsed = dateparser.parse(
+            match.group(1),
+            settings={
+                'TIMEZONE': self.timezone.zone,
+                'RETURN_AS_TIMEZONE_AWARE': True
+            }
+        )
+        return parsed.astimezone(self.timezone)
 
-    # Additional extraction methods for other fields...
+    def _extract_duration(self, text: str) -> int:
+        match = re.search(self.patterns['duration'], text)
+        return int(match.group(1)) if match else 60  # Default to 60 minutes
+
+    def _extract_attendees(self, text: str) -> str:
+        match = re.search(self.patterns['attendees'], text)
+        return match.group(1) if match else ""
+
+    def _extract_location(self, text: str) -> str:
+        match = re.search(self.patterns['location'], text)
+        return match.group(1) if match else ""
+
+    def _extract_description(self, text: str) -> str:
+        return re.sub(r'\s+', ' ', text).strip()  # Simple text cleanup
+
+    def _process_results(self, extracted: Dict) -> Dict:
+        if not extracted['start']:
+            raise ValueError("Could not parse meeting time")
+        if not extracted['attendees']:
+            logging.warning("No attendees found in meeting details")
+        return extracted
 
 class CalendarIntegration:
     def __init__(self):
@@ -78,20 +109,24 @@ class CalendarIntegration:
         self.ms_graph_headers = self._init_microsoft_graph()
 
     def _init_google_calendar(self):
-        creds = Credentials.from_authorized_user_file(CONFIG['google_credentials'], 
-                    ['https://www.googleapis.com/auth/calendar'])
+        creds = Credentials.from_authorized_user_file(
+            CONFIG['google_credentials'], 
+            ['https://www.googleapis.com/auth/calendar']
+        )
         return build('calendar', 'v3', credentials=creds)
 
     def _init_microsoft_graph(self):
-        app = PublicClientApplication(CONFIG['ms_client_id'],
-                                    authority="https://login.microsoftonline.com/common")
+        app = PublicClientApplication(
+            CONFIG['ms_client_id'],
+            authority="https://login.microsoftonline.com/common"
+        )
         result = app.acquire_token_interactive(scopes=["Files.Read.All"])
         return {'Authorization': f'Bearer {result["access_token"]}'}
 
     def search_document(self):
         """Search for document with pagination handling"""
         items = []
-        url = "https://graph.microsoft.com/v1.0/me/drive/root/search(q='work agenda')"
+        url = "https://graph.microsoft.com/v1.0/me/drive/root/search(q='work%20agenda')"
         while url:
             response = requests.get(url, headers=self.ms_graph_headers)
             if response.status_code == 200:
@@ -119,53 +154,70 @@ class CalendarIntegration:
 def main():
     integrator = CalendarIntegration()
     
-    # Search for document
-    doc_item = integrator.search_document()
-    if not doc_item:
-        logging.error("Document not found")
-        return
-
-    # Retrieve and parse document
-    content = requests.get(doc_item['@microsoft.graph.downloadUrl']).content
-    file_ext = os.path.splitext(doc_item['name'])[1].lower()
-    
-    parser = DocumentProcessor()
-    if file_ext == '.docx':
-        text = parser.parse_docx(content)
-    elif file_ext == '.pdf':
-        text = parser.parse_pdf(content)
-    else:  # Assume text
-        text = parser.parse_text(content)
-
-    # Extract meeting information
-    extractor = MeetingExtractor(timezone=CONFIG['timezone'])
-    meeting_data = extractor.extract_info(text)
-    
-    # Create calendar event
-    event_body = {
-        'summary': meeting_data['title'],
-        'location': meeting_data['location'],
-        'description': meeting_data['description'],
-        'start': {
-            'dateTime': meeting_data['start'].isoformat(),
-            'timeZone': CONFIG['timezone']
-        },
-        'end': {
-            'dateTime': (meeting_data['start'] + 
-                         timedelta(minutes=meeting_data['duration'])).isoformat(),
-            'timeZone': CONFIG['timezone']
-        },
-        'attendees': [{'email': email.strip()} for email in meeting_data['attendees'].split(',')]
-    }
-    
-    # Handle recurrence
-    if 'weekly' in text.lower():
-        event_body['recurrence'] = ['RRULE:FREQ=WEEKLY;INTERVAL=1']
-    
-    integrator.create_calendar_event(event_body)
-
-if __name__ == "__main__":
     try:
-        main()
+        # Search for document
+        doc_item = integrator.search_document()
+        if not doc_item:
+            logging.error("Document not found")
+            return
+
+        # Validate file type
+        if doc_item['file']['mimeType'] not in [
+            'application/pdf', 
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain'
+        ]:
+            logging.error("Unsupported file type")
+            return
+
+        # Retrieve and parse document
+        response = requests.get(
+            doc_item['@microsoft.graph.downloadUrl'],
+            headers=integrator.ms_graph_headers
+        )
+        response.raise_for_status()
+        content = response.content
+        
+        file_ext = os.path.splitext(doc_item['name'])[1].lower()
+        
+        parser = DocumentProcessor()
+        if file_ext == '.docx':
+            text = parser.parse_docx(content)
+        elif file_ext == '.pdf':
+            text = parser.parse_pdf(content)
+        else:
+            text = parser.parse_text(content)
+
+        # Extract meeting information
+        extractor = MeetingExtractor(timezone=CONFIG['timezone'])
+        meeting_data = extractor.extract_info(text)
+        
+        # Create calendar event
+        event_body = {
+            'summary': meeting_data['title'],
+            'location': meeting_data['location'],
+            'description': meeting_data['description'],
+            'start': {
+                'dateTime': meeting_data['start'].isoformat(),
+                'timeZone': CONFIG['timezone']
+            },
+            'end': {
+                'dateTime': (meeting_data['start'] + 
+                            timedelta(minutes=meeting_data['duration'])).isoformat(),
+                'timeZone': CONFIG['timezone']
+            },
+            'attendees': [{'email': email.strip()} for email in meeting_data['attendees'].split(',')]
+        }
+        
+        # Handle recurrence
+        if 'weekly' in text.lower():
+            event_body['recurrence'] = ['RRULE:FREQ=WEEKLY;INTERVAL=1']
+        
+        integrator.create_calendar_event(event_body)
+
     except Exception as e:
         logging.critical(f"Critical failure: {str(e)}", exc_info=True)
+        raise
+
+if __name__ == "__main__":
+    main()
