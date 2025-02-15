@@ -1,0 +1,17 @@
+2025-02-15 14:39:18,019 - CRITICAL - Critical failure: [Errno 2] No such file or directory: 'token.json'
+Traceback (most recent call last):
+  File "C:\Users\raeed\Desktop\chronologic\hackathon\Hacklahoma\backend\test.py", line 169, in <module>
+    main()
+  File "C:\Users\raeed\Desktop\chronologic\hackathon\Hacklahoma\backend\test.py", line 120, in main
+    integrator = CalendarIntegration()
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\raeed\Desktop\chronologic\hackathon\Hacklahoma\backend\test.py", line 77, in __init__
+    self.google_service = self._init_google_calendar()
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\raeed\Desktop\chronologic\hackathon\Hacklahoma\backend\test.py", line 81, in _init_google_calendar
+    creds = Credentials.from_authorized_user_file(CONFIG['google_credentials'],
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\raeed\Desktop\chronologic\hackathon\Hacklahoma\.venv\Lib\site-packages\google\oauth2\credentials.py", line 515, in from_authorized_user_file
+    with io.open(filename, "r", encoding="utf-8") as json_file:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'token.json'
