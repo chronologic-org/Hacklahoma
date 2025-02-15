@@ -5,6 +5,7 @@ from ..nodes.coder_node import CoderNode
 from ..nodes.tester_node import TesterNode
 from ..nodes.evaluator_node import EvaluatorNode
 from typing import Dict, Any, TypedDict, Annotated
+from ..utils.logging import logger
 
 class GraphState(TypedDict):
     user_input: str
@@ -16,6 +17,7 @@ class GraphState(TypedDict):
     supervisor_feedback: Dict[str, Any]
     iteration_count: int
     final_status: str
+    error: str
 
 async def create_planning_flow() -> Graph:
     # Initialize nodes
@@ -31,9 +33,14 @@ async def create_planning_flow() -> Graph:
     # Add nodes
     @workflow.node("planner")
     async def planning_node(state: GraphState) -> GraphState:
-        plan = await planner.process(state["user_input"])
-        state["plan"] = plan.dict()
-        return state
+        try:
+            plan = await planner.process(state["user_input"])
+            state["plan"] = plan.dict()
+            return state
+        except Exception as e:
+            logger.error(f"Planning node error: {str(e)}")
+            state["error"] = str(e)
+            return state
 
     @workflow.node("supervisor")
     async def supervisor_node(state: GraphState) -> GraphState:
@@ -52,25 +59,40 @@ async def create_planning_flow() -> Graph:
 
     @workflow.node("coder")
     async def coder_node(state: GraphState) -> GraphState:
-        code_output = await coder.process(state["supervisor_output"]["coding_task"])
-        state["code_output"] = code_output.dict()
-        return state
+        try:
+            code_output = await coder.process(state["supervisor_output"]["coding_task"])
+            state["code_output"] = code_output.dict()
+            return state
+        except Exception as e:
+            logger.error(f"Coder node error: {str(e)}")
+            state["error"] = str(e)
+            return state
 
     @workflow.node("tester")
     async def tester_node(state: GraphState) -> GraphState:
-        test_output = await tester.process(state["supervisor_output"]["testing_task"])
-        state["test_output"] = test_output.dict()
-        return state
+        try:
+            test_output = await tester.process(state["supervisor_output"]["testing_task"])
+            state["test_output"] = test_output.dict()
+            return state
+        except Exception as e:
+            logger.error(f"Tester node error: {str(e)}")
+            state["error"] = str(e)
+            return state
 
     @workflow.node("evaluator")
     async def evaluator_node(state: GraphState) -> GraphState:
-        evaluation = await evaluator.process(
-            state["code_output"],
-            state["test_output"],
-            state["plan"]
-        )
-        state["evaluation"] = evaluation.dict()
-        return state
+        try:
+            evaluation = await evaluator.process(
+                state["code_output"],
+                state["test_output"],
+                state["plan"]
+            )
+            state["evaluation"] = evaluation.dict()
+            return state
+        except Exception as e:
+            logger.error(f"Evaluator node error: {str(e)}")
+            state["error"] = str(e)
+            return state
 
     # Define conditional routing
     @workflow.node("check_completion")

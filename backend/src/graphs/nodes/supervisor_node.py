@@ -1,18 +1,18 @@
 from typing import Dict, Any, Tuple
 from langchain.prompts import PromptTemplate
-from langchain.chat_models import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
+from .base_node import BaseNode
 
 class SupervisorOutput(BaseModel):
     coding_task: Dict[str, Any] = Field(
-        description="Detailed instructions for the coding node"
+        description="The coding node is in charge of writing the program that will be used to interact with the APIs"
     )
     testing_task: Dict[str, Any] = Field(
-        description="Detailed instructions for the testing node"
+        description="The testing node is in charge of taking the code provided by the coding node and testing it thoroughly using unit tests and other testing strategies"
     )
     acceptance_criteria: list[str] = Field(
-        description="Criteria for accepting the final implementation"
+        description="If the code runs and passes all of the tests, it is accepted as a successful integration"
     )
 
 class SupervisorFeedback(BaseModel):
@@ -26,14 +26,15 @@ class SupervisorFeedback(BaseModel):
         description="Steps to take next"
     )
 
-class SupervisorNode:
+class SupervisorNode(BaseNode):
     def __init__(self):
-        self.model = ChatOpenAI(temperature=0.3)
+        super().__init__(temperature=0.3)
         self.output_parser = JsonOutputParser(pydantic_object=SupervisorOutput)
         
         self.prompt = PromptTemplate(
-            template="""You are a technical lead supervising an API integration project.
-            Review the following integration plan and divide it into specific tasks for coding and testing:
+            template="""<task>
+            You are a technical lead supervising an API integration project.
+            Review this integration plan and divide it into specific tasks:
 
             Integration Plan: {plan}
 
@@ -42,6 +43,7 @@ class SupervisorNode:
             2. For the testing team: Include test scenarios, edge cases, and validation requirements
 
             Ensure both tasks align with the original plan and cover all requirements.
+            </task>
 
             {format_instructions}
             """,
@@ -50,8 +52,9 @@ class SupervisorNode:
         )
 
         self.review_prompt = PromptTemplate(
-            template="""You are a technical lead reviewing the evaluation results of an API integration.
-            Review the following evaluation and determine if changes are needed:
+            template="""<task>
+            You are a technical lead reviewing evaluation results.
+            Review this evaluation and determine if changes are needed:
 
             Evaluation Results: {evaluation}
             Original Plan: {original_plan}
@@ -60,6 +63,7 @@ class SupervisorNode:
             1. If the implementation meets requirements
             2. What changes or improvements are needed
             3. Next steps for the team
+            </task>
 
             {format_instructions}
             """,

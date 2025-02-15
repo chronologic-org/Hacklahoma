@@ -42,6 +42,7 @@ project/
 - Node.js 16+
 - MongoDB installed locally or MongoDB Atlas account
 - OpenAI API key
+- Groq API key
 
 ### Backend Setup
 1. Set up Python virtual environment:
@@ -57,14 +58,27 @@ project/
    ```
 
 3. Configure environment variables:
-   - Create a `.env` file in the backend directory:
-     ```
-     MONGODB_URL=mongodb://localhost:27017
-     DATABASE_NAME=hacklahoma
-     OPENAI_API_KEY=your_api_key_here
-     MAX_ITERATIONS=3
-     MODEL_TEMPERATURE=0.2
-     ```
+   ```bash
+   # Copy the example environment file
+   cp .env.example .env
+   
+   # Edit .env with your settings
+   # Particularly, add your Groq API key
+   ```
+   
+   Required environment variables:
+   - `GROQ_API_KEY`: Your Groq API key
+   - `MONGODB_URL`: MongoDB connection string
+   - `DATABASE_NAME`: Name of the MongoDB database
+   - `MODEL_NAME`: Groq model to use (default: mixtral-8x7b-32768)
+   - `MODEL_TEMPERATURE`: Model temperature (default: 0.2)
+   - `MAX_ITERATIONS`: Maximum feedback loop iterations (default: 3)
+   - `LOG_LEVEL`: Logging level (default: INFO)
+
+4. Start the backend server:
+   ```bash
+   uvicorn main:app --reload
+   ```
 
 ### Frontend Setup
 1. Install Node.js dependencies:

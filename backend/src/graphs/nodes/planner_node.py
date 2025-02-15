@@ -1,8 +1,8 @@
 from typing import Dict, Any
 from langchain.prompts import PromptTemplate
-from langchain.chat_models import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
+from .base_node import BaseNode
 
 class PlannerOutput(BaseModel):
     apis: Dict[str, Dict[str, Any]] = Field(
@@ -21,14 +21,14 @@ class PlannerOutput(BaseModel):
         description="Rules for validating the integration"
     )
 
-class PlannerNode:
+class PlannerNode(BaseNode):
     def __init__(self):
-        self.model = ChatOpenAI(temperature=0.7)
+        super().__init__(temperature=0.7)
         self.output_parser = JsonOutputParser(pydantic_object=PlannerOutput)
         
         self.prompt = PromptTemplate(
-            template="""You are an expert system architect specializing in API integrations.
-            Analyze the following user request and create a detailed plan for connecting two APIs:
+            template="""<task>
+            You are an expert system architect. Analyze the user request and create a detailed plan for connecting two APIs.
 
             User Request: {user_input}
 
@@ -41,6 +41,7 @@ class PlannerNode:
 
             Focus on creating a practical and implementable solution.
             Be specific about endpoints, data transformations, and error handling.
+            </task>
 
             {format_instructions}
             """,

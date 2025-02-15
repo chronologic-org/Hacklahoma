@@ -1,8 +1,8 @@
 from typing import Dict, Any
 from langchain.prompts import PromptTemplate
-from langchain.chat_models import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
+from .base_node import BaseNode
 
 class EvaluationOutput(BaseModel):
     code_evaluation: Dict[str, Any] = Field(
@@ -21,14 +21,15 @@ class EvaluationOutput(BaseModel):
         description="Whether the implementation meets requirements"
     )
 
-class EvaluatorNode:
+class EvaluatorNode(BaseNode):
     def __init__(self):
-        self.model = ChatOpenAI(temperature=0.2)
+        super().__init__(temperature=0.2)
         self.output_parser = JsonOutputParser(pydantic_object=EvaluationOutput)
         
         self.prompt = PromptTemplate(
-            template="""You are an expert system evaluator analyzing both implementation code and test results.
-            Review the following code implementation and test results:
+            template="""<task>
+            You are an expert system evaluator analyzing implementation and test results.
+            Review the following code and test outputs:
 
             Implementation Code:
             {code_output}
@@ -47,6 +48,7 @@ class EvaluatorNode:
             5. Performance considerations
 
             Provide a detailed evaluation and determine if the implementation is acceptable.
+            </task>
 
             {format_instructions}
             """,

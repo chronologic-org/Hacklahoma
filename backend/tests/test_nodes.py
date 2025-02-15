@@ -25,7 +25,7 @@ def mock_openai_response():
 
 @pytest.mark.asyncio
 async def test_planner_node(mock_openai_response):
-    with patch('langchain.chat_models.ChatOpenAI.ainvoke', return_value=mock_openai_response):
+    with patch('langchain.chat_models.ChatGroq.ainvoke', return_value=mock_openai_response):
         planner = PlannerNode()
         result = await planner.process("Connect Weather API with SMS API")
         
