@@ -1,6 +1,5 @@
 from typing import Dict, Any
 from langchain.prompts import PromptTemplate
-from langchain.chat_models import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 from .base_node import BaseNode
@@ -22,8 +21,9 @@ class CoderNode(BaseNode):
         self.output_parser = JsonOutputParser(pydantic_object=CodeOutput)
         
         self.prompt = PromptTemplate(
-            template="""You are an expert programmer implementing an API integration.
-            Create the necessary code based on the following specifications:
+            template="""<task>
+            You are an expert programmer implementing an API integration.
+            Create code based on these specifications:
 
             Task Details: {coding_task}
 
@@ -31,6 +31,9 @@ class CoderNode(BaseNode):
             1. Follows best practices and design patterns
             2. Includes error handling and logging
             3. Is well-documented and maintainable
+
+            Provide complete, working code implementations.
+            </task>
 
             {format_instructions}
             """,

@@ -1,6 +1,5 @@
 from typing import Dict, Any
 from langchain.prompts import PromptTemplate
-from langchain.chat_models import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 from .base_node import BaseNode

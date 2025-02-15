@@ -42,6 +42,7 @@ project/
 - Node.js 16+
 - MongoDB installed locally or MongoDB Atlas account
 - OpenAI API key
+- Groq API key
 
 ### Backend Setup
 1. Set up Python virtual environment:
@@ -62,14 +63,14 @@ project/
    cp .env.example .env
    
    # Edit .env with your settings
-   # Particularly, add your OpenAI API key
+   # Particularly, add your Groq API key
    ```
    
    Required environment variables:
-   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `GROQ_API_KEY`: Your Groq API key
    - `MONGODB_URL`: MongoDB connection string
    - `DATABASE_NAME`: Name of the MongoDB database
-   - `MODEL_NAME`: OpenAI model to use (default: gpt-4-turbo-preview)
+   - `MODEL_NAME`: Groq model to use (default: mixtral-8x7b-32768)
    - `MODEL_TEMPERATURE`: Model temperature (default: 0.2)
    - `MAX_ITERATIONS`: Maximum feedback loop iterations (default: 3)
    - `LOG_LEVEL`: Logging level (default: INFO)
