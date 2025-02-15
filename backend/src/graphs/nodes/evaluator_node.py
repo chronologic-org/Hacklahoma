@@ -3,6 +3,7 @@ from langchain.prompts import PromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
+from .base_node import BaseNode
 
 class EvaluationOutput(BaseModel):
     code_evaluation: Dict[str, Any] = Field(
@@ -21,9 +22,9 @@ class EvaluationOutput(BaseModel):
         description="Whether the implementation meets requirements"
     )
 
-class EvaluatorNode:
+class EvaluatorNode(BaseNode):
     def __init__(self):
-        self.model = ChatOpenAI(temperature=0.2)
+        super().__init__(temperature=0.2)
         self.output_parser = JsonOutputParser(pydantic_object=EvaluationOutput)
         
         self.prompt = PromptTemplate(

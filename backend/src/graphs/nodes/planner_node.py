@@ -3,6 +3,7 @@ from langchain.prompts import PromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
+from .base_node import BaseNode
 
 class PlannerOutput(BaseModel):
     apis: Dict[str, Dict[str, Any]] = Field(
@@ -21,9 +22,9 @@ class PlannerOutput(BaseModel):
         description="Rules for validating the integration"
     )
 
-class PlannerNode:
+class PlannerNode(BaseNode):
     def __init__(self):
-        self.model = ChatOpenAI(temperature=0.7)
+        super().__init__(temperature=0.7)
         self.output_parser = JsonOutputParser(pydantic_object=PlannerOutput)
         
         self.prompt = PromptTemplate(

@@ -3,6 +3,7 @@ from langchain.prompts import PromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
+from .base_node import BaseNode
 
 class CodeOutput(BaseModel):
     implementation: Dict[str, str] = Field(
@@ -15,9 +16,9 @@ class CodeOutput(BaseModel):
         description="Instructions for setting up the code"
     )
 
-class CoderNode:
+class CoderNode(BaseNode):
     def __init__(self):
-        self.model = ChatOpenAI(temperature=0.2)
+        super().__init__(temperature=0.2)
         self.output_parser = JsonOutputParser(pydantic_object=CodeOutput)
         
         self.prompt = PromptTemplate(
