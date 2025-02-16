@@ -318,27 +318,31 @@ export default function ConnectionsPage() {
 
           {placedItems.length === 2 && (
             <div className="flex justify-between items-center gap-4">
-              <Input
-                placeholder="Enter your connection here..."
-                className="flex-1"
-                value={connectionText}
-                onChange={(e) => setConnectionText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleSubmitConnection()
-                  }
-                }}
-              />
-              <Button 
-                onClick={handleSubmitConnection}
-                disabled={!connectionText.trim() || isSubmitting}
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  'Submit' 
-                )}
-              </Button>
+              <Card className="bg-[#FCFBEF]/90 flex-1 rounded-xl p-4">
+                <div className="flex items-center gap-2">
+                  <Input className = "bg-[#90DBF4]/90"
+                    placeholder="Enter your connection here..."
+                    value={connectionText}
+                    onChange={(e) => setConnectionText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleSubmitConnection();
+                      }
+                    }}
+                  />
+                  <Button
+                    className="bg-pink-100 hover:bg-pink-200"
+                    onClick={handleSubmitConnection}
+                    disabled={!connectionText.trim() || isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Submit"
+                    )}
+                  </Button>
+                </div>
+              </Card>
             </div>
           )}
 

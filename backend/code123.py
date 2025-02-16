@@ -1,141 +1,111 @@
-def add(num1: float, num2: float) -> float:
-    """Perform addition operation."""
-    return num1 + num2
+import os
+import logging
+import googleapiclient.discovery
+import googleapiclient.errors
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+import pickle
+from tenacity import retry, stop_after_attempt, wait_exponential
+from openai import OpenAI
+from typing import Optional
 
-def subtract(num1: float, num2: float) -> float:
-    """Perform subtraction operation."""
-    return num1 - num2
+# Configure logging
+logging.basicConfig(
+    filename='app.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
-def multiply(num1: float, num2: float) -> float:
-    """Perform multiplication operation."""
-    return num1 * num2
+class HomeworkHelper:
+    def __init__(self, credentials_path: str):
+        self.credentials_path = credentials_path
+        self.auth = None
+        self.service = None
+        self._authenticate()
 
-def divide(num1: float, num2: float) -> float:
-    """Perform division operation, handling division by zero."""
-    if num2 == 0:
-        raise ZeroDivisionError("Division by zero is undefined.")
-    return num1 / num2
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    def _authenticate(self) -> None:
+        """Authenticate with Google using OAuth 2.0."""
+        try:
+            if os.path.exists('token.pickle'):
+                with open('token.pickle', 'rb') as token:
+                    self.auth = pickle.load(token)
+            if not self.auth or not self.auth.valid:
+                if self.auth and self.auth.expired and self.auth.refresh_token:
+                    self.auth.refresh(Request())
+                else:
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        self.credentials_path,
+                        scopes=['https://www.googleapis.com/auth/documents.readonly']
+                    )
+                    self.auth = flow.run_local_server(port=0)
+                with open('token.pickle', 'wb') as token:
+                    pickle.dump(self.auth, token)
+            self.service = googleapiclient.discovery.build(
+                'docs', 'v1', credentials=self.auth)
+            logging.info("Successfully authenticated with Google.")
+        except googleapiclient.errors.HttpError as e:
+            logging.error(f"Google API authentication error: {str(e)}")
+            raise
+        except Exception as e:
+            logging.error(f"Unexpected authentication error: {str(e)}")
+            raise
 
-def calculate(num1: float, num2: float, operation: str) -> float:
-    """Perform the specified arithmetic operation."""
-    operations = {
-        '+': add,
-        '-': subtract,
-        '*': multiply,
-        '/': divide
-    }
-    
-    if operation not in operations:
-        raise ValueError(f"Invalid operation: '{operation}'. Please use one of: +, -, *, /.")
-    
-    return operations[operation](num1, num2)
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    def get_document(self, document_id: str) -> str:
+        """Retrieve the content of a Google Doc."""
+        try:
+            document = self.service.documents().get(
+                documentId=document_id).execute()
+            text = document.get('body', {}).get('content', '')
+            return text
+        except googleapiclient.errors.HttpError as e:
+            logging.error(f"Error fetching document: {str(e)}")
+            raise
 
-def calculator(input_args=None):
-    """Main calculator function that processes input."""
-    if input_args is None:
-        user_input = input("Enter two numbers and an operation (+, -, *, /), "
-                           "e.g., '5 3 +': ")
-        parts = user_input.split()
-    else:
-        parts = input_args
+    def preprocess_text(self, text: str) -> str:
+        """Clean and preprocess the text."""
+        try:
+            # Remove extra whitespace
+            text = ' '.join(text.split())
+            # Remove headers/footers/comments (example regex)
+            text = text.replace("Header:", "").replace("Footer:", "").replace("Comment:", "")
+            return text.strip()
+        except Exception as e:
+            logging.error(f"Error preprocessing text: {str(e)}")
+            raise
 
-    if len(parts) != 3:
-        raise ValueError("Invalid input format. Please use 'num1 num2 operation'.")
-
+def query_chatgpt(api_key: str, prompt: str) -> Optional[str]:
+    """Query ChatGPT with the given prompt."""
     try:
-        num1 = float(parts[0])
-        num2 = float(parts[1])
-    except ValueError:
-        print("Invalid input: please enter numerical values.")
-        return
-
-    operation = parts[2]
-    if operation not in ['+', '-', '*', '/']:
-        print(f"Invalid operation: '{operation}'. Please select one of: +, -, *, /.")
-        return
-
-    try:
-        result = calculate(num1, num2, operation)
-    except ZeroDivisionError as e:
-        print(str(e))
-        return
-    except ValueError as e:
-        print(f"Invalid input: {str(e)}")
-        return
+        openai = OpenAI(api_key=api_key)
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1000
+        )
+        if response and response.choices:
+            return response.choices[0].message['content']
+        return None
     except Exception as e:
-        print(f"An unexpected error occurred: {str(e)}")
-        return
+        logging.error(f"Error querying ChatGPT: {str(e)}")
+        return None
 
-    if isinstance(result, float) and result.is_integer():
-        print(int(result))
-    else:
-        print(result)
-
-import unittest
-
-class TestCalculator(unittest.TestCase):
-    def test_add(self):
-        self.assertEqual(calculate(5, 3, '+'), 8.0)
-        self.assertEqual(calculate(-5, 3, '+'), -2.0)
-
-    def test_subtract(self):
-        self.assertEqual(calculate(5, 3, '-'), 2.0)
-        self.assertEqual(calculate(3, 5, '-'), -2.0)
-
-    def test_multiply(self):
-        self.assertEqual(calculate(5, 3, '*'), 15.0)
-        self.assertEqual(calculate(-5, 3, '*'), -15.0)
-
-    def test_divide(self):
-        self.assertEqual(calculate(6, 3, '/'), 2.0)
-        self.assertEqual(calculate(-6, 3, '/'), -2.0)
-
-    def test_divide_by_zero(self):
-        with self.assertRaises(ZeroDivisionError):
-            calculate(5, 0, '/')
-
-    def test_invalid_operation(self):
-        with self.assertRaises(ValueError):
-            calculate(5, 3, '%')
-
-    def test_negative_numbers(self):
-        self.assertEqual(calculate(-5, -3, '+'), -2.0)
-        self.assertEqual(calculate(-5, 3, '+'), -2.0)
-        self.assertEqual(calculate(-5, -3, '*'), 15.0)
-        self.assertEqual(calculate(-5, 3, '*'), -15.0)
-
-    def test_zero_inputs(self):
-        self.assertEqual(calculate(0, 0, '+'), 0.0)
-        self.assertEqual(calculate(0, 0, '-'), 0.0)
-        self.assertEqual(calculate(0, 0, '*'), 0.0)
-        with self.assertRaises(ZeroDivisionError):
-            calculate(1, 0, '/')
-
-    def test_large_numbers(self):
-        self.assertEqual(calculate(1e300, 2, '+'), 1e300 + 2)
-        self.assertEqual(calculate(1e300, 2, '-'), 1e300 - 2)
-        self.assertEqual(calculate(1e300, 2, '*'), 2e300)
-        self.assertEqual(calculate(1e300, 2, '/'), 5e299)
+def main():
+    try:
+        # Example usage
+        helper = HomeworkHelper("credentials.json")
+        document_id = "your_document_id"
+        text = helper.get_document(document_id)
+        cleaned_text = helper.preprocess_text(text)
+        response = query_chatgpt("your_openai_api_key", cleaned_text)
+        print(response)
+    except Exception as e:
+        logging.error(f"Main function error: {str(e)}")
+        print(f"An error occurred: {str(e)}")
 
 if __name__ == "__main__":
-    print("Simple Calculator App")
-    print("Valid operations: +, -, *, /")
-    print("Example usage: '5 3 +'\n")
-
-    # Run calculator with example inputs
-    calculator(['5', '3', '+'])
-    calculator(['5', '3', '-'])
-    calculator(['5', '3', '*'])
-    calculator(['6', '3', '/'])
-    try:
-        calculator(['5', '0', '/'])
-    except ZeroDivisionError:
-        print("Division by zero error caught.")
-    try:
-        calculator(['5', '3', '%'])
-    except ValueError:
-        print("Invalid operation error caught.")
-
-    # Run unit tests
-    print("\nRunning unit tests...")
-    unittest.main(argv=[''], verbosity=2, exit=False)
+    main()
