@@ -88,7 +88,7 @@ class AgentState(BaseModel):
     tests: str = ""
     evaluation: str = ""
     iteration: int = 0
-    max_iterations: int = 5
+    max_iterations: int = 3
     next_step: str = "planner"
     last_agent: str = ""
 
@@ -399,5 +399,5 @@ def run_api_integration(user_input: str) -> Dict:
         return {"error": error_msg}
 
 if __name__ == "__main__":
-    user_request = "Make a calculator app that can add, subtract, multiply, and divide."
+    user_request = "write an app that takes my last email from my gmail and puts it into my google calendar"
     result = run_api_integration(user_request)
