@@ -45,13 +45,6 @@ export default function UpdateProfilePage() {
             {/* Right column */}
             <div className="relative h-[400px] rounded-xl overflow-hidden bg-gradient-to-br from-blue-200 via-cyan-200 to-green-200">
               <div className="absolute inset-0 flex items-center justify-center">
-                <Image
-                  src="/placeholder.svg?height=200&width=200"
-                  alt="Geometric pattern"
-                  width={200}
-                  height={200}
-                  className="opacity-75"
-                />
               </div>
             </div>
           </div>

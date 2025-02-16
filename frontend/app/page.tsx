@@ -10,12 +10,6 @@ export default function Home() {
         {/* Updated header section */}
         <header className="flex flex-col items-center mb-8">
           <div className="logo mb-4">
-            <Image
-              src="/placeholder.svg?height=100&width=300"
-              alt="Chronologic Logo"
-              width={300}
-              height={100}
-            />
           </div>
 
           <Button className="bg-pink-100 hover:bg-pink-200">

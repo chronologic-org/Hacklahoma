@@ -370,14 +370,14 @@ export default function ConnectionsPage() {
             <div className="flex gap-4">
               <ClickableItem 
                 id="left-api" 
-                name="Left API" 
+                name="API A" 
                 isPlaced={placedApis.has("left-api")}
                 onItemAdd={handleAddItem}
                 onRetrieve={handleRemoveItem}
               />
               <ClickableItem 
                 id="right-api" 
-                name="Right API" 
+                name="API B" 
                 isPlaced={placedApis.has("right-api")}
                 onItemAdd={handleAddItem}
                 onRetrieve={handleRemoveItem}

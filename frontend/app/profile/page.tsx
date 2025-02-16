@@ -2,6 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import img from '../photos/Warm_Logo.png';
 
 export default function ProfilePage() {
   return (
@@ -10,6 +11,7 @@ export default function ProfilePage() {
         <div className="p-6">
           {/* Navigation */}
           <div className="flex items-center justify-between mb-8">
+            <Image src={img} alt="Description of the image" width={500} height={300} />
             <h1 className="text-2xl font-bold">Chronologic</h1>
             <div className="flex gap-4">
               <Button className="bg-pink-100 hover:bg-pink-200">
@@ -59,13 +61,6 @@ export default function ProfilePage() {
             {/* Right column */}
             <div className="relative h-[400px] rounded-xl overflow-hidden bg-gradient-to-br from-blue-200 via-cyan-200 to-green-200">
               <div className="absolute inset-0 flex items-center justify-center">
-                <Image
-                  src="/placeholder.svg?height=200&width=200"
-                  alt="Geometric pattern"
-                  width={200}
-                  height={200}
-                  className="opacity-75"
-                />
               </div>
             </div>
           </div>
