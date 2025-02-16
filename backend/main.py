@@ -67,7 +67,7 @@ def log(message):
 log("=== SCRIPT STARTING ===")
 
 # Initialize Groq clients with verified API key
-GROQ_API_KEY = "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"#os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
     log("ERROR: GROQ_API_KEY environment variable is not set")
     sys.exit(1)
@@ -129,7 +129,7 @@ def plan_agent(state: AgentState) -> AgentState:
     
     response = plan_client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
-        model="mixtral-8x7b-32768",
+        model="llama-3.3-70b-versatile",
         temperature=0.7,
     )
     
@@ -165,7 +165,7 @@ def supervisor_agent(state: AgentState) -> AgentState:
     
     response = supervisor_client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
-        model="mixtral-8x7b-32768",
+        model="qwen-2.5-32b",
         temperature=0.3,
     )
     
@@ -222,11 +222,11 @@ def coder_agent(state: AgentState) -> AgentState:
     return state
 
 def tester_agent(state: AgentState) -> AgentState:
-    """Generates unit tests for the code."""
+    """Generates unit tests for the code with improved error handling and model fallback."""
     log("\n=== TESTER AGENT ===")
     
     prompt = f"""
-    You are a unit test creator that creates 5 tests ONLY and Salways imports everything that is needed. Create unit tests for this code123.py file:
+    You are a unit test creator that creates 5 tests ONLY and always imports everything that is needed. Create unit tests for this code123.py file:
     {state.code}
     
     Based on these requirements:
@@ -235,14 +235,65 @@ def tester_agent(state: AgentState) -> AgentState:
     Your output should be a list of unit tests.
     """
     
-    response = tester_client.chat.completions.create(
-        messages=[{"role": "user", "content": prompt}],
-        model="mixtral-8x7b-32768",
-        temperature=0.2,
-    )
+    # Define model hierarchy for fallback
+    models = [
+        "qwen-2.5-32b",
+        "llama-3.3-70b-versatile",
+        "deepseek-r1-distill-llama-70b"
+    ]
     
-    tmp = extract_code_blocks(response.choices[0].message.content)
-    state.tests = tmp[0]
+    response = None
+    last_error = None
+    
+    for model in models:
+        try:
+            log(f"Attempting to use model: {model}")
+            response = tester_client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model=model,
+                temperature=0.2,
+            )
+            
+            # Log successful model use
+            log(f"Successfully used model: {model}")
+            break
+            
+        except Exception as e:
+            last_error = e
+            error_message = str(e)
+            log(f"Error with model {model}: {error_message}")
+            
+            # If it's not a rate limit error, we might want to try the next model
+            if "rate_limit" not in error_message.lower():
+                continue
+                
+            # If it's a rate limit error, check if it's for Mixtral
+            if "mixtral" in error_message.lower():
+                log("Detected Mixtral rate limit despite not requesting Mixtral. This might indicate a model fallback issue.")
+            
+            # Wait a short time before trying the next model
+            import time
+            time.sleep(1)
+    
+    if response is None:
+        # If all models failed, we need to handle this gracefully
+        error_msg = f"All models failed. Last error: {last_error}"
+        log(f"CRITICAL ERROR: {error_msg}")
+        state.evaluation = f"Error in test generation: {error_msg}"
+        state.next_step = "supervisor"
+        state.last_agent = "tester"
+        return state
+    
+    try:
+        tmp = extract_code_blocks(response.choices[0].message.content)
+        if not tmp:
+            raise ValueError("No code blocks found in response")
+        state.tests = tmp[0]
+        
+    except Exception as e:
+        log(f"Error extracting code blocks: {str(e)}")
+        state.tests = "# Error generating tests\n# Please review the code and try again"
+    
     state.next_step = "supervisor"
     state.last_agent = "tester"
     
@@ -283,7 +334,7 @@ def evaluator_agent(state: AgentState) -> AgentState:
     
     response = evaluator_client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
-        model="mixtral-8x7b-32768",
+        model="llama-3.3-70b-versatile",
         temperature=0.3,
     )
     
