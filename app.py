@@ -173,7 +173,7 @@ def supervisor_agent(state: AgentState) -> AgentState:
         state.next_step = "end"
     elif not state.code or state.last_agent == "evaluator":
         state.next_step = "coder"
-    elif not state.tests or state.last_agent == "coder":
+    elif not state.tests:
         state.next_step = "tester"
     elif "evaluate" in decision:
         state.next_step = "evaluator"
