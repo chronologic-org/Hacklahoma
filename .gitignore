@@ -12,3 +12,7 @@ backend/.env
 # IDE
 .vscode
 .idea 
+
+code.py
+tests.py
+

@@ -188,7 +188,7 @@ def tester_agent(state: AgentState) -> AgentState:
     log("\n=== TESTER AGENT ===")
     
     prompt = f"""
-    You are a unit test creator. Create unit tests for this code:
+    You are a unit test creator. Create unit tests for this code.py file:
     {state.code}
     
     Based on these requirements:
@@ -215,6 +215,17 @@ def tester_agent(state: AgentState) -> AgentState:
 def evaluator_agent(state: AgentState) -> AgentState:
     """Evaluates code and tests, providing feedback."""
     log("\n=== EVALUATOR AGENT ===")
+    
+    
+    code_filename = "code.py"
+    with open(code_filename, "w") as f:
+        f.write(state.code)
+    print(f"\nCode has been saved to {code_filename}")
+    
+    test_filename = "tests.py"
+    with open(test_filename, "w") as f:
+        f.write(state.tests)
+    print(f"\nTests have been saved to {test_filename}")
     
     prompt = f"""
     Evaluate this code:
