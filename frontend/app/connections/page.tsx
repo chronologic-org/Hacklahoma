@@ -27,6 +27,16 @@ const POSITIONS = {
   right: { x: 550, y: 100 }
 }
 
+// Backend Request Type
+type BackendRequest = {
+  prompt: string
+  app1: string
+  app2: string
+  app_schemas: Record<string, any>
+}
+
+
+
 const ProgressItem = ({ prompt, onDelete }: { prompt: Prompt; onDelete?: () => void }) => (
   <div className="flex items-center gap-2">
     <div className="flex-1 h-8 bg-gray-100 rounded flex items-center px-3">
@@ -154,6 +164,7 @@ const Arrow = () => {
 }
 
 export default function ConnectionsPage() {
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showToolsModal, setShowToolsModal] = useState(false)
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([])
   const [connectionText, setConnectionText] = useState("")
@@ -198,6 +209,67 @@ export default function ConnectionsPage() {
     setPrompts(prev => prev.filter((_, i) => i !== index))
   }
 
+  const leftApi = placedItems.find(item => item.position === "left")
+  const rightApi = placedItems.find(item => item.position === "right")
+
+  const handleSubmitConnection = async () => {
+  // Ensure both APIs are placed and connection text is not empty
+  if (placedItems.length !== 2 || !connectionText.trim() || isSubmitting) {
+    return
+  }
+
+  const leftApi = placedItems.find(item => item.position === "left")
+  const rightApi = placedItems.find(item => item.position === "right")
+
+  // Handle the case where leftApi or rightApi is undefined
+  if (!leftApi || !rightApi) {
+    console.error("Both APIs must be placed before submitting.")
+    return
+  }
+
+  const payload: BackendRequest = {
+    prompt: connectionText,
+    app1: leftApi.id,
+    app2: rightApi.id,
+    app_schemas: {
+      [leftApi.id]: {}, // Replace with actual schema if available
+      [rightApi.id]: {} // Replace with actual schema if available
+    }
+  }
+
+  try {
+    setIsSubmitting(true)
+    setPrompts(prev => [...prev, { 
+      text: connectionText,
+      status: "running" 
+    }])
+
+    const response = await fetch('/api/connect', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) throw new Error('Failed to process connection')
+
+    setPrompts(prev => prev.map((prompt, idx) => 
+      idx === prev.length - 1 
+        ? { ...prompt, status: "completed" }
+        : prompt
+    ))
+
+    setConnectionText("")
+  } catch (error) {
+    console.error('Error:', error)
+    setPrompts(prev => prev.filter((_, idx) => idx !== prev.length - 1))
+    // Add error handling UI feedback here
+  } finally {
+    setIsSubmitting(false)
+  }
+}
+
   return (
     <div className="min-h-screen bg-[#ffcfd2] p-4">
       <div className="max-w-4xl mx-auto">
@@ -226,16 +298,30 @@ export default function ConnectionsPage() {
 
           {placedItems.length === 2 && (
             <div className="flex justify-between items-center gap-4">
-              <Card className=" bg-[#FCFBEF]/90 p-4 rounded-xl flex-1">
-                <Input
-                  placeholder="Enter your connection here..."
-                  className="flex-1 rounded-xl"
-                  value={connectionText}
-                  onChange={(e) => setConnectionText(e.target.value)}
-                />
-              </Card>
+              <Input
+                placeholder="Enter your connection here..."
+                className="flex-1"
+                value={connectionText}
+                onChange={(e) => setConnectionText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSubmitConnection()
+                  }
+                }}
+              />
+              <Button 
+                onClick={handleSubmitConnection}
+                disabled={!connectionText.trim() || isSubmitting}
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Submit'
+                )}
+              </Button>
             </div>
           )}
+
         </main>
 
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t">
