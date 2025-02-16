@@ -23,7 +23,7 @@ export const apiService = {
     // Example CRUD operations
     createItem: async (item: { name: string; description: string }) => {
         try {
-            const response = await api.post('/api/items', item);
+            const response = await api.post('/graph', item);
             return response.data;
         } catch (error) {
             console.error('Create Item Error:', error);

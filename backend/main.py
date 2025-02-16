@@ -2,12 +2,16 @@ import os
 import sys
 import re
 import subprocess
+import uvicorn
+from fastapi import FastAPI , File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
-from typing import Dict, List, Annotated
+from typing import Dict, List, Annotated, Any
 from langgraph.graph import StateGraph, END
 from groq import Groq
 from pydantic import BaseModel, Field
 import json
+from io import BytesIO
 
 def extract_code_blocks(text):
     """
@@ -63,7 +67,7 @@ def log(message):
 log("=== SCRIPT STARTING ===")
 
 # Initialize Groq clients with verified API key
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = "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"#os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
     log("ERROR: GROQ_API_KEY environment variable is not set")
     sys.exit(1)
@@ -398,6 +402,33 @@ def run_api_integration(user_input: str) -> Dict:
         log(f"ERROR: {error_msg}")
         return {"error": error_msg}
 
+
+app=FastAPI()
+
+origins = [
+    "http://localhost:3000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class JSONInput(BaseModel):
+    prompt: str
+    app1: str
+    app2: str
+    app_schemas: Dict[str, Any]
+
+@app.post("/graph")
+async def run_api_integration_endpoint(user_input: JSONInput):
+    json_string = json.dumps(user_input.prompt)
+    return run_api_integration(json_string)
+
+
 if __name__ == "__main__":
-    user_request = "write an app that takes my last email from my gmail and puts it into my google calendar"
-    result = run_api_integration(user_request)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

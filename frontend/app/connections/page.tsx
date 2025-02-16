@@ -8,6 +8,7 @@ import { ToolsModal } from "@/components/tools-modal"
 import { Loader2, Check, X } from "lucide-react"
 import { Card } from "@/components/ui/card"
 
+
 // Types
 type Position = "left" | "right"
 type PlacedItem = {
@@ -248,7 +249,7 @@ export default function ConnectionsPage() {
       ]);
   
       // Send the request to the backend
-      const response = await fetch("/api/connect", {
+      const response = await fetch("http://localhost:8000/graph", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
