@@ -117,7 +117,7 @@ def supervisor_agent(state: AgentState) -> AgentState:
     - Current iteration: {state.iteration}
     
     Analyze the situation and choose ONE of these next steps:
-    1. "generate code" - if we need to create or modify code
+    1. "generate code" - if code does not exist or is not working
     2. "generate tests" - if we have code but need tests
     3. "evaluate" - if we have both code and tests to evaluate
     4. "end" - only if everything is complete and validated
@@ -203,7 +203,8 @@ def tester_agent(state: AgentState) -> AgentState:
         temperature=0.2,
     )
     
-    state.tests = response.choices[0].message.content
+    tmp = extract_code_blocks(response.choices[0].message.content)
+    state.tests = tmp[0]
     state.next_step = "supervisor"
     state.last_agent = "tester"
     
