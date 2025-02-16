@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -6,6 +7,22 @@ export default function Home() {
   return (
     <main className="min-h-screen gradient-bg p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-8">
+        {/* Updated header section */}
+        <header className="flex flex-col items-center mb-8">
+          <div className="logo mb-4">
+            <Image
+              src="/placeholder.svg?height=100&width=300"
+              alt="Chronologic Logo"
+              width={300}
+              height={100}
+            />
+          </div>
+
+          <Button className="bg-pink-100 hover:bg-pink-200">
+                <Link href="/profile">Profile</Link>
+          </Button>
+        </header>
+
         <Card className="bg-[#90dbf4]/90 p-6">
           <h1 className="text-2xl font-bold mb-4">What is Chronologic?</h1>
           <p className="roboto-defultfont">
@@ -29,7 +46,7 @@ export default function Home() {
 
         <Card className="bg-[#b9fbc0]/90 p-6">
           <h2 className="text-2xl font-bold mb-4">Why use Chronologic?</h2>
-          <p className="text-gray-800">
+          <p className="roboto-defultfont">
             The modern world has many software products that help you with your work or just consume your attention. But
             life does not wait for all these mundane tasks to be completed, time just continues anyway. Chronologic will
             help you disconnect from these time consuming tasks so you can get back to living.
@@ -46,4 +63,3 @@ export default function Home() {
     </main>
   )
 }
-
