@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import subprocess
 from datetime import datetime
 from typing import Dict, List, Annotated
 from langgraph.graph import StateGraph, END
@@ -18,6 +19,40 @@ def extract_code_blocks(text):
     pattern = r'```(?:\w+\s)?(.*?)```'
     matches = re.findall(pattern, text, re.DOTALL)
     return matches
+
+def run_unit_tests(test_filename):
+    test_results = []
+    try:
+        test_result = subprocess.run(['python', '-m', 'pytest', test_filename], capture_output=True, text=True,timeout=30)
+        test_success = test_result.returncode == 0
+        test_results.append({
+            'success': test_success,
+            'output': test_result.stdout,
+            'error': test_result.stderr
+        })
+        return test_results
+    except Exception as e:
+        test_results.append({
+            'success': False,
+            'error': str(e)
+        })
+        return f"Error running tests: {str(e)}"
+
+def run_code(code_filename):
+    """Run the unit tests"""
+    execution_results = []
+    try:
+        result = subprocess.run(['python', code_filename], capture_output=True, text=True,timeout=30)
+        execution_success = result.returncode == 0
+        execution_results.append({
+            'success': execution_success,
+            'output': result.stdout,
+            'error': result.stderr
+        })
+        return execution_results
+    except Exception as e:
+        return f"Error running tests: {str(e)}"
+
 
 def log(message):
     """Force immediate output of log messages"""
@@ -53,7 +88,7 @@ class AgentState(BaseModel):
     tests: str = ""
     evaluation: str = ""
     iteration: int = 0
-    max_iterations: int = 5
+    max_iterations: int = 3
     next_step: str = "planner"
     last_agent: str = ""
 
@@ -83,10 +118,9 @@ def plan_agent(state: AgentState) -> AgentState:
     {new_state.user_input}
     
     Include:
-    1. Required API endpoints
-    2. Data transformation steps
-    3. Error handling requirements
-    4. Expected input/output formats
+    1. Data transformation steps
+    2. Error handling requirements
+    3. Expected input/output formats
     """
     
     response = plan_client.chat.completions.create(
@@ -137,9 +171,9 @@ def supervisor_agent(state: AgentState) -> AgentState:
     # Parse decision
     if state.iteration >= state.max_iterations:
         state.next_step = "end"
-    elif not state.code or "generate code" in decision:
+    elif not state.code or state.last_agent == "evaluator":
         state.next_step = "coder"
-    elif not state.tests or "generate test" in decision:
+    elif not state.tests:
         state.next_step = "tester"
     elif "evaluate" in decision:
         state.next_step = "evaluator"
@@ -188,7 +222,7 @@ def tester_agent(state: AgentState) -> AgentState:
     log("\n=== TESTER AGENT ===")
     
     prompt = f"""
-    You are a unit test creator. Create unit tests for this code:
+    You are a unit test creator that creates 5 tests ONLY and Salways imports everything that is needed. Create unit tests for this code123.py file:
     {state.code}
     
     Based on these requirements:
@@ -216,21 +250,31 @@ def evaluator_agent(state: AgentState) -> AgentState:
     """Evaluates code and tests, providing feedback."""
     log("\n=== EVALUATOR AGENT ===")
     
+    
+    code_filename = "code123.py"
+    with open(code_filename, "w") as f:
+        f.write(state.code)
+    print(f"\nCode has been saved to {code_filename}")
+    
+    test_filename = "tests.py"
+    with open(test_filename, "w") as f:
+        f.write(state.tests)
+    print(f"\nTests have been saved to {test_filename}")
+    
+    test_results = run_unit_tests(test_filename)
+    
     prompt = f"""
-    Evaluate this code:
-    {state.code}
+    based on the test results, {test_results}, and the code, {state.code},
     
-    And these tests:
-    {state.tests}
-    
-    Against these requirements:
-    {state.plan}
+    if the code is working, do not change the plan. if the code is not working,
+    alter the plan: {state.plan}, to fix the issues in the code.
     
     Provide specific feedback on:
     1. Code functionality
     2. Test coverage
     3. Error handling
-    4. API integration correctness
+    
+    
     """
     
     response = evaluator_client.chat.completions.create(
@@ -239,7 +283,7 @@ def evaluator_agent(state: AgentState) -> AgentState:
         temperature=0.3,
     )
     
-    state.evaluation = response.choices[0].message.content
+    state.plan = response.choices[0].message.content
     state.iteration += 1
     state.next_step = "supervisor"
     state.last_agent = "evaluator"
@@ -307,7 +351,7 @@ def run_api_integration(user_input: str) -> Dict:
         
         # Run the workflow
         log("Invoking workflow...")
-        result = workflow.invoke(initial_state)
+        result = workflow.invoke(initial_state, {"recursion_limit": 100})
         log("Workflow execution completed")
         
         # Process results
@@ -355,5 +399,5 @@ def run_api_integration(user_input: str) -> Dict:
         return {"error": error_msg}
 
 if __name__ == "__main__":
-    user_request = "Make a calculator app that can add, subtract, multiply, and divide."
+    user_request = "write an app that takes my last email from my gmail and puts it into my google calendar"
     result = run_api_integration(user_request)
