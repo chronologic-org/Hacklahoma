@@ -1,6 +1,6 @@
 # Hacklahoma 2025 Project
 
-A web application built for Hacklahoma 2025 using React frontend and Python/LangGraph backend with MongoDB database.
+A web application built for Hacklahoma 2025 using React frontend and Python/LangGraph backend using GenAI.
 
 ## Project Structure
 
@@ -84,7 +84,7 @@ project/
 1. Install Node.js dependencies:
    ```bash
    cd frontend
-   npm install
+   npm install dependencies
    ```
 
 ## Running Tests
@@ -141,6 +141,7 @@ npm run dev
 - Frontend:
   - React
   - TypeScript
+  - Tailwind
   - Vite
   - Axios
 - Backend:
@@ -148,8 +149,6 @@ npm run dev
   - FastAPI
   - LangGraph
   - LangChain
-  - MongoDB
-  - Motor (Async MongoDB driver)
   - PyTest (Testing)
 
 ## Development Guidelines
@@ -160,7 +159,7 @@ npm run dev
 5. Follow error handling patterns in BaseNode
 
 ## Team Members
-[Add team members here]
+Louis, Raeed, Kyumin, and Devi
 
 ## License
 [Add license information]
