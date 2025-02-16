@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, #e9c5ff 0%, #90dbf4 50%, #fde4cf 100%);
+}
+
+.blur-overlay {
+  backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+
+.roboto-defultfont {
+  font-family: "Roboto", serif;
+  font-optical-sizing: auto;
+  font-weight: 300;
+  font-style: normal;
+  font-variation-settings:
+    "wdth" 100;
+}
+
+.squarecircle {
+  border-radius: 50%;
+}
+
