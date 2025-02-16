@@ -13,4 +13,21 @@ backend/.env
 .vscode
 .idea 
 
+# Generated files
+code.py
+tests.py
+code123.py
+token.pickle
+calendar_sync.log
+
+# Cache directories
+__pycache__/
+.pytest_cache/
+*/__pycache__/
+*/.pytest_cache/
+
+# Environment files
+.env
+*.env
+
 airy-box-414920-6924aede5eb5.json
