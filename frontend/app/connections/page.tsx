@@ -35,31 +35,34 @@ type BackendRequest = {
   app_schemas: Record<string, any>
 }
 
-
-
 const ProgressItem = ({ prompt, onDelete }: { prompt: Prompt; onDelete?: () => void }) => (
   <div className="flex items-center gap-2">
     <div className="flex-1 h-8 bg-gray-100 rounded flex items-center px-3">
       {prompt.text}
     </div>
-    <div className="w-8 flex justify-center">
+    <div className="flex items-center gap-4">
       {prompt.status === "running" && (
         <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
       )}
       {prompt.status === "completed" && (
-        <div className="flex gap-2">
-          <Check className="h-5 w-5 text-green-500" />
-          {onDelete && (
-            <X 
-              className="h-5 w-5 text-red-500 cursor-pointer hover:text-red-600" 
-              onClick={onDelete}
-            />
-          )}
+        <div className="text-green-500 font-semibold">
+          Done
         </div>
+      )}
+      {prompt.status === "idle" && (
+        <div className="text-red-500 font-semibold">
+          Failed
+        </div>
+      )}
+      {onDelete && (
+        <X
+          className="h-5 w-5 text-red-500 cursor-pointer hover:text-red-600"
+          onClick={onDelete}
+        />
       )}
     </div>
   </div>
-)
+);
 
 const Progress = ({ prompts, onDelete }: { prompts: Prompt[]; onDelete: (index: number) => void }) => (
   <div className="bg-white rounded-lg p-6 shadow-lg">
@@ -74,7 +77,7 @@ const Progress = ({ prompts, onDelete }: { prompts: Prompt[]; onDelete: (index: 
       ))}
     </div>
   </div>
-)
+);
 
 const ClickableItem = ({ 
   id, 
@@ -209,66 +212,82 @@ export default function ConnectionsPage() {
     setPrompts(prev => prev.filter((_, i) => i !== index))
   }
 
-  const leftApi = placedItems.find(item => item.position === "left")
-  const rightApi = placedItems.find(item => item.position === "right")
-
   const handleSubmitConnection = async () => {
-  // Ensure both APIs are placed and connection text is not empty
-  if (placedItems.length !== 2 || !connectionText.trim() || isSubmitting) {
-    return
-  }
-
-  const leftApi = placedItems.find(item => item.position === "left")
-  const rightApi = placedItems.find(item => item.position === "right")
-
-  // Handle the case where leftApi or rightApi is undefined
-  if (!leftApi || !rightApi) {
-    console.error("Both APIs must be placed before submitting.")
-    return
-  }
-
-  const payload: BackendRequest = {
-    prompt: connectionText,
-    app1: leftApi.id,
-    app2: rightApi.id,
-    app_schemas: {
-      [leftApi.id]: {}, // Replace with actual schema if available
-      [rightApi.id]: {} // Replace with actual schema if available
+    // Ensure both APIs are placed and connection text is not empty
+    if (placedItems.length !== 2 || !connectionText.trim() || isSubmitting) {
+      return;
     }
-  }
-
-  try {
-    setIsSubmitting(true)
-    setPrompts(prev => [...prev, { 
-      text: connectionText,
-      status: "running" 
-    }])
-
-    const response = await fetch('/api/connect', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload)
-    })
-
-    if (!response.ok) throw new Error('Failed to process connection')
-
-    setPrompts(prev => prev.map((prompt, idx) => 
-      idx === prev.length - 1 
-        ? { ...prompt, status: "completed" }
-        : prompt
-    ))
-
-    setConnectionText("")
-  } catch (error) {
-    console.error('Error:', error)
-    setPrompts(prev => prev.filter((_, idx) => idx !== prev.length - 1))
-    // Add error handling UI feedback here
-  } finally {
-    setIsSubmitting(false)
-  }
-}
+  
+    const leftApi = placedItems.find(item => item.position === "left");
+    const rightApi = placedItems.find(item => item.position === "right");
+  
+    // Handle the case where leftApi or rightApi is undefined
+    if (!leftApi || !rightApi) {
+      console.error("Both APIs must be placed before submitting.");
+      return;
+    }
+  
+    const payload: BackendRequest = {
+      prompt: connectionText,
+      app1: leftApi.id,
+      app2: rightApi.id,
+      app_schemas: {
+        [leftApi.id]: {}, // Replace with actual schema if available
+        [rightApi.id]: {} // Replace with actual schema if available
+      }
+    };
+  
+    try {
+      // Set the submitting state to true
+      setIsSubmitting(true);
+  
+      // Add the new prompt to the progress list with "running" status
+      setPrompts(prev => [
+        ...prev,
+        { text: connectionText, status: "running" }
+      ]);
+  
+      // Send the request to the backend
+      const response = await fetch("/api/connect", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+  
+      if (!response.ok) {
+        // If the response is not OK, throw an error to handle it in the catch block
+        throw new Error(`Failed to process connection: ${response.status}`);
+      }
+  
+      // Update the last prompt's status to "completed"
+      setPrompts(prev =>
+        prev.map((prompt, idx) =>
+          idx === prev.length - 1
+            ? { ...prompt, status: "completed" }
+            : prompt
+        )
+      );
+  
+      // Clear the connection text after successful submission
+      setConnectionText("");
+    } catch (error) {
+      console.error("Error:", error);
+  
+      // Update the last prompt's status to "idle" or "failed" instead of removing it
+      setPrompts(prev =>
+        prev.map((prompt, idx) =>
+          idx === prev.length - 1
+            ? { ...prompt, status: "idle" } // You can use "failed" or another status
+            : prompt
+        )
+      );
+    } finally {
+      // Reset the submitting state
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#ffcfd2] p-4">
@@ -304,7 +323,7 @@ export default function ConnectionsPage() {
                 value={connectionText}
                 onChange={(e) => setConnectionText(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     handleSubmitConnection()
                   }
                 }}
@@ -316,7 +335,7 @@ export default function ConnectionsPage() {
                 {isSubmitting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  'Submit'
+                  'Submit' 
                 )}
               </Button>
             </div>
