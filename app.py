@@ -1,11 +1,23 @@
 import os
 import sys
+import re
 from datetime import datetime
 from typing import Dict, List, Annotated
 from langgraph.graph import StateGraph, END
 from groq import Groq
 from pydantic import BaseModel, Field
 import json
+
+def extract_code_blocks(text):
+    """
+    Extracts code blocks enclosed in triple backticks from the given text.
+    
+    :param text: str, input text containing code blocks
+    :return: list of extracted code blocks
+    """
+    pattern = r'```(?:\w+\s)?(.*?)```'
+    matches = re.findall(pattern, text, re.DOTALL)
+    return matches
 
 def log(message):
     """Force immediate output of log messages"""
@@ -110,7 +122,7 @@ def supervisor_agent(state: AgentState) -> AgentState:
     3. "evaluate" - if we have both code and tests to evaluate
     4. "end" - only if everything is complete and validated
 
-    Respond with ONLY ONE of these exact phrases: "generate code", "generate tests", "evaluate", or "end"
+    Respond with ONLY ONE of these exact phrases: "generate code", "generate tests", "evaluate", or "end". After selecting do not add any other text.
     """
     
     response = supervisor_client.chat.completions.create(
@@ -162,7 +174,8 @@ def coder_agent(state: AgentState) -> AgentState:
         temperature=0.2,
     )
     
-    state.code = response.choices[0].message.content
+    tmp = extract_code_blocks(response.choices[0].message.content)
+    state.code = tmp[0]
     state.next_step = "supervisor"
     state.last_agent = "coder"
     
@@ -175,17 +188,19 @@ def tester_agent(state: AgentState) -> AgentState:
     log("\n=== TESTER AGENT ===")
     
     prompt = f"""
-    Do not write any code just say what the unit tests will be. Create unit tests for this code:
+    You are a unit test creator. Create unit tests for this code:
     {state.code}
     
     Based on these requirements:
     {state.plan}
+    
+    Your output should be a list of unit tests.
     """
     
     response = tester_client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
         model="mixtral-8x7b-32768",
-        temperature=0.5,
+        temperature=0.2,
     )
     
     state.tests = response.choices[0].message.content
