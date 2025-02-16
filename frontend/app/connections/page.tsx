@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { ToolsModal } from "@/components/tools-modal"
 import { Loader2, Check, X } from "lucide-react"
 import { Card } from "@/components/ui/card"
+import ColorWave2D from "@/components/ColorWave2D"
 
 
 // Types
@@ -39,7 +40,7 @@ type BackendRequest = {
 const ProgressItem = ({ prompt, onDelete }: { prompt: Prompt; onDelete?: () => void }) => (
   <div className="flex items-center gap-2">
     <div className="flex-1 h-8 bg-gray-100 rounded flex items-center px-3">
-      {prompt.text}
+      {prompt.text.slice(0, 90) + "..."}
     </div>
     <div className="flex items-center gap-4">
       {prompt.status === "running" && (
@@ -293,8 +294,15 @@ export default function ConnectionsPage() {
   return (
     <div className="min-h-screen bg-[#ffcfd2] p-4">
       <div className="max-w-4xl mx-auto">
-      <header className="flex justify-between items-center px-6 mb-6">
-        <h1 className="text-2xl font-bold">Chronologic</h1>
+      <header className="flex justify-between items-center px-6 mb-6 height-lg">
+        <div className="container">
+        <div className="wave-wrapper">
+        <ColorWave2D />
+        <h1 className="overlay-text text-2xl font-bold">Chronologic</h1>
+
+      </div>
+        </div>
+
         <div className="flex gap-4">
           <Button className="bg-pink-100 hover:bg-pink-200">
             <Link href="/">Home</Link>
@@ -345,6 +353,12 @@ export default function ConnectionsPage() {
               </Card>
             </div>
           )}
+
+          <div className = "height-xl * 5">
+            <Card className="bg-[#FCFBEF]/90 rounded-xl p-4">
+              <p>Peek-a-boo</p>
+            </Card>
+          </div>
 
         </main>
 
